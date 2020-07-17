@@ -3,17 +3,23 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Data;
 using System.Text;
+using System.Configuration;
+using System.IO;
 
 namespace NOTISSTest
 {
     class DBinteractions
     {
         private SqlConnection connection;
-        private string connectionString;
+        //private string connectionString;
         public DBinteractions()
         {
-            this.connectionString = @"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=D:\VisualStudio\source\repos\NOTISSTest\NOTISSTest\ctlgDB.mdf;Integrated Security=True";
-            connection = new SqlConnection(connectionString);
+            //this.connectionString = @"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=D:\VisualStudio\source\repos\NOTISSTest\NOTISSTest\AppData\ctlgDB.mdf;Integrated Security=True";
+            string fromSett = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
+            string relative = @"..\..\..\AppData";
+            string absolute = Path.GetFullPath(relative);
+            fromSett = fromSett.Replace("|DataDirectory|", absolute);
+            connection = new SqlConnection(fromSett);
         }
 
         public void InsertCurrency(Currency[] currencies)
@@ -22,10 +28,35 @@ namespace NOTISSTest
             {
                 using (var command = new SqlCommand("dbo.InsertCurrency", connection) { CommandType = CommandType.StoredProcedure })
                 {
-                    connection.Open();
                     command.Parameters.AddWithValue("id", cur.ID);
                     command.Parameters.AddWithValue("rate", cur.Rate);
                     command.Parameters.AddWithValue("plus", cur.Plus);
+                    connection.Open();
+                    var res = command.ExecuteNonQuery();
+                    if (res == 0)
+                    {
+                        Console.WriteLine("Error");
+                    }
+                    connection.Close();
+                }
+            }
+        }
+        public void InsertCategory(Category[] categories)
+        {
+            foreach (var cat in categories)
+            {
+                using (var command = new SqlCommand("dbo.InsertCategory", connection) { CommandType = CommandType.StoredProcedure })
+                {
+                    
+                    command.Parameters.AddWithValue("id", cat.id);
+                    command.Parameters.AddWithValue("parentId", cat.parentId);
+                    command.Parameters.AddWithValue("name", cat.name);
+                    connection.Open();
+                    var res = command.ExecuteNonQuery();
+                    if (res == 0)
+                    {
+                        Console.WriteLine("Error");
+                    }
                     connection.Close();
                 }
             }
@@ -85,8 +116,8 @@ namespace NOTISSTest
 
                     if (o.dataTour != null)
                     {
-                        command.Parameters.AddWithValue("@dataTourBegin", DateTime.Parse(o.dataTour[0].name));
-                        command.Parameters.AddWithValue("@dataTourEnd", DateTime.Parse(o.dataTour[1].name));
+                        command.Parameters.AddWithValue("@dataTourBegin", o.dataTour[0].name);
+                        command.Parameters.AddWithValue("@dataTourEnd", o.dataTour[1].name);
                     }
 
                     command.Parameters.AddWithValue("@hotel_stars", o.hotel_stars);
@@ -105,7 +136,9 @@ namespace NOTISSTest
                     connection.Open();
                     var res = command.ExecuteNonQuery();
                     if (res == 0)
-                        Console.WriteLine("Shit");
+                    { 
+                        Console.WriteLine("Error");
+                    }
                     connection.Close();
                 }
             }
